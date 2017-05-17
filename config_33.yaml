@@ -1,0 +1,88 @@
+driver: mysql
+dburl: tjj:tjj617@tcp(59.202.28.11:3306)/tjj
+table: ""
+query: |
+  SELECT
+    '01' as rtype,
+    rpad(ifnull(`a`.`nbxh`,''),32,' ') AS uuid,
+     /*length(replace(uuid(),'-','')) as uuid,*/
+      rpad(ifnull(`a`.`USCC`,''),18,' ') AS `社会信用代码`,
+    (CASE
+      WHEN
+        ((`a`.`INFOACTIONTYPE` = '2')
+          OR (`b`.`NBXH` IS NOT NULL))
+      THEN
+        '6'
+      ELSE '2'
+    END) AS `工商业务类型`,
+    rpad(substr(ifnull(`a`.`USCC`,''),10,9),9,' ') as 组织机构代码,
+      rpad(ifnull(`a`.`ZCH`,''),50,' ') AS `注册号`,
+      rpad(ifnull(`a`.`QYMC`,''),100,' ') AS `详细名称`,
+      rpad(substr(ifnull(`a`.`QYLX`,''),1,4),4,' ') AS `企业类型`,
+      rpad(ifnull(`c`.`单位类型`,''),1,' ') AS `单位类型`,
+      rpad(ifnull(`c`.`登记注册类型`,''),3,' ') AS `登记注册类型`,
+      rpad(ifnull(`c`.`控股情况`,''),1,' ') AS `控股情况`,
+      rpad(ifnull(`c`.`机构类型`,''),2,' ') AS `机构类型`,
+      rpad(ifnull(`c`.`执行会计标准类别`,''),1,' ') AS `执行会计标准类别`,
+    '      ' as 企业登记机关,
+      rpad(ifnull(
+      IF((`a`.`DJJG` = '330000'),
+              IFNULL(`a`.`ZSDJJG`, `a`.`DJJG`),
+              `a`.`DJJG`),''),6,' ') AS `数据处理地代码`,
+      rpad(ifnull(`a`.`CLRQ`,''),20,' ') AS `开业日期`,
+      rpad(ifnull(`a`.`JYQSRQ`,''),20,' ') AS `经营期限自`,
+      rpad(ifnull(`a`.`JYJZRQ`,''),20,' ') AS `经营期限止`,
+    rpad(if( a.jyqsrq is not null and a.jyjzrq is not null,
+      cast(cast(substr(a.jyjzrq,1,4) as decimal(10)) - cast(substr(a.jyqsrq,1,4) as decimal(10))+1 as char varying(4)),
+      ''
+    ),4,' ') as 经营期限,
+      rpad(ifnull(`a`.`ZS`,''),200,' ') AS `住所`,
+      rpad(ifnull(`a`.`YZBM`,''),6,' ') AS `邮政编码`,
+      rpad(ifnull(`d`.`GDDH`,''),60,' ') AS `法人固话`,
+      rpad(ifnull(`a`.`ProLoc`,''),200,' ') AS `生产经营地址`,
+      rpad(ifnull(`a`.`JYFW`,''),3000,' ') AS `经营范围`,
+    rpad('',24,' ') as 注册资本,
+    '   ' as 货币种类,
+    rpad('',24,' ') as 货币金额,
+    rpad(ifnull(a.INFOACTIONTYPE,''),1,' ') as 信息操作类型,
+    rpad('',14,' ') as 数据修改时间,
+      rpad(ifnull(
+      IF((`a`.`DJJG` = '330000'),
+              IFNULL(`a`.`ZSDJJG`, `a`.`DJJG`),
+              `a`.`DJJG`),''),40,' ') AS `行政区划代码`,
+    rpad('',20,' ') as 数据包编码,
+    (CASE
+      WHEN
+        ((`a`.`INFOACTIONTYPE` = '2')
+          OR (`b`.`NBXH` IS NOT NULL))
+      THEN
+        '1'
+      ELSE ' '
+    END) AS `是否注销`,
+    rpad('',32,' ') as 批次号,
+    rpad('',100,' ') as 上级主管部门名称,
+      rpad(ifnull(`a`.`FDDBR`,''),100,' ') AS `法定代表人`,
+      rpad(ifnull(`e`.`INV`,''),50,' ') AS `财务负责人`,
+    rpad('',6,' ') as 投资人数量,
+    rpad('',6,' ') as 下级子公司数量,
+    rpad('',20,' ') as 变更时间,
+    '999' as 状态,
+    '0' as 是否重码,
+    '0' as 人工处理结果类型,
+    '0' as 是否已审核,
+    '1' as 是否已推送到名录库,
+    date_format(now(),'%Y%m%d%H%i%S') as 数据上传时间,
+    rpad('',14,' ') as 审核时间
+  FROM
+    ((((`tjj`.`zz_gsyyzz` `a`
+    LEFT JOIN `tjj`.`gx_zxdjxx` `b` ON ((`a`.`NBXH` = `b`.`NBXH`)))
+    LEFT JOIN `test`.`cdetrs` `c` ON ((`a`.`QYLX` = `c`.`代码`)))
+    LEFT JOIN `tjj`.`gs_frxx` `d` ON (((`a`.`NBXH` = `d`.`NBXH`)
+      AND (`d`.`RYXH` = '1'))))
+    LEFT JOIN `tjj`.`gs_cwryxx` `e` ON ((`a`.`NBXH` = `e`.`NBXH`)))
+  where
+    a.uscc is not null
+
+limit: 100
+filename: export.flat
+outfmt: flat

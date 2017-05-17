@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/gob"
 	"fmt"
 	"os"
 	"time"
@@ -15,6 +14,10 @@ import (
 	_ "github.com/mattn/go-oci8"
 
 	"flag"
+
+	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
 func init() {
@@ -22,37 +25,63 @@ func init() {
 
 }
 func main() {
-	driver := flag.String("driver", "", "db driver")
-	dburl := flag.String("dburl", "", "database url")
-	table := flag.String("table", "", "table name")
-	query := flag.String("query", "", "select query sql,the table must empty")
-	limit := flag.Int64("limit", -1, "limit table rows")
-	filename := flag.String("file", "export.dat", "select query sql,the table must empty")
-	flag.Parse()
+	cfg := new(Config)
+	bs, err := ioutil.ReadFile("config.yaml")
+	if err == nil {
+		if err = yaml.Unmarshal(bs, cfg); err != nil {
+			log.Panic(err)
+		}
+	} else {
+		driver := flag.String("driver", "", "db driver")
+		dburl := flag.String("dburl", "", "database url")
+		table := flag.String("table", "", "table name")
+		query := flag.String("query", "", "select query sql,the table must empty")
+		limit := flag.Int64("limit", -1, "limit table rows")
+		filename := flag.String("file", "export.dat", "output file name")
+		outfmt := flag.String("fmt", "gob", "output file format. gob/flat")
+		flag.Parse()
+		cfg.Driver = *driver
+		cfg.DBUrl = *dburl
+		cfg.Table = *table
+		cfg.Query = *query
+		cfg.Limit = *limit
+		cfg.Filename = *filename
+		cfg.Outfmt = *outfmt
+	}
+
 	var strSql string
 	var count uint64
-	if len(*query) > 0 {
-		strSql = *query
+	if len(cfg.Query) > 0 {
+		strSql = cfg.Query
 	} else {
-		if len(*table) == 0 {
+		if len(cfg.Table) == 0 {
 			log.Panic("table is empty")
 		}
-		if *limit >= 0 {
-			switch *driver {
+		if cfg.Limit >= 0 {
+			switch cfg.Driver {
 			case "oci8":
-				strSql = fmt.Sprintf("select * from %s where rownum<=%d", *table, *limit)
+				strSql = fmt.Sprintf("select * from %s where rownum<=%d", cfg.Table, cfg.Limit)
 			case "postgres":
-				strSql = fmt.Sprintf("select * from %s limit %d", *table, *limit)
+				strSql = fmt.Sprintf("select * from %s limit %d", cfg.Table, cfg.Limit)
 			case "mysql":
-				strSql = fmt.Sprintf("select * from %s limit %d", *table, *limit)
+				strSql = fmt.Sprintf("select * from %s limit %d", cfg.Table, cfg.Limit)
 			default:
-				log.Panic("invalid driver", *driver)
+				log.Panic("invalid driver", cfg.Driver)
 			}
 		} else {
-			strSql = fmt.Sprintf("select * from %s", *table)
+			strSql = fmt.Sprintf("select * from %s", cfg.Table)
 		}
 	}
-	db, err := sqlx.Open(*driver, *dburl)
+	var out outEncode
+	switch cfg.Outfmt {
+	case "gob":
+		out = new(outGob)
+	case "flat":
+		out = new(outFlat)
+	default:
+		log.Panic("invalid outfmt,", cfg.Outfmt)
+	}
+	db, err := sqlx.Open(cfg.Driver, cfg.DBUrl)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -61,26 +90,24 @@ func main() {
 	if err = row.Scan(&count); err != nil {
 		log.Panic(err)
 	}
-	file, err := os.Create(*filename)
-	if err != nil {
+	if err := out.Open(cfg.Filename); err != nil {
 		log.WithFields(log.Fields{
-			"file": filename,
+			"file": cfg.Filename,
 		}).Panic(err)
 	}
-	defer file.Close()
+	defer out.Close()
 
 	rows, err := db.Queryx(strSql)
 	if err != nil {
 		log.Panic(err)
 	}
 	defer rows.Close()
-	var rn uint64 = 0
+	var rn uint64
 	cols, err := rows.Columns()
 	if err != nil {
 		log.Panic(err)
 	}
-	enc := gob.NewEncoder(file)
-	if err = enc.Encode(cols); err != nil {
+	if err = out.WriteTitle(cols); err != nil {
 		log.Panic(err)
 	}
 	startTime := time.Now()
@@ -94,7 +121,7 @@ func main() {
 				"no": rn,
 			}).Panic(err)
 		}
-		if err = enc.Encode(vars); err != nil {
+		if err = out.WriteLine(vars); err != nil {
 			log.WithFields(log.Fields{
 				"no": rn,
 			}).Panic(err)
@@ -111,7 +138,7 @@ func main() {
 	}
 	log.WithFields(log.Fields{
 		"sql":  strSql,
-		"file": *filename,
+		"file": cfg.Filename,
 		"rows": rn,
 	}).Info("finish")
 }
