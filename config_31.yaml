@@ -4,84 +4,121 @@ table: ""
 query: |
   SELECT
     '01' as rtype,
-    substr(rpad('x'||corp_info_id,32,' '),2) AS uuid,
-    substr(rpad('x'||社会信用代码,18,' '),2) AS 社会信用代码,
-    (CASE
-      WHEN
-        ((`a`.`INFOACTIONTYPE` = '2')
-          OR (`b`.`NBXH` IS NOT NULL))
-      THEN
-        '6'
-      ELSE '2'
-    END) AS `工商业务类型`,
-    rpad(substr(ifnull(`a`.`USCC`,''),10,9),9,' ') as 组织机构代码,
-      rpad(ifnull(`a`.`ZCH`,''),50,' ') AS `注册号`,
-      rpad(ifnull(`a`.`QYMC`,''),100,' ') AS `详细名称`,
-      rpad(substr(ifnull(`a`.`QYLX`,''),1,4),4,' ') AS `企业类型`,
-      rpad(ifnull(`c`.`单位类型`,''),1,' ') AS `单位类型`,
-      rpad(ifnull(`c`.`登记注册类型`,''),3,' ') AS `登记注册类型`,
-      rpad(ifnull(`c`.`控股情况`,''),1,' ') AS `控股情况`,
-      rpad(ifnull(`c`.`机构类型`,''),2,' ') AS `机构类型`,
-      rpad(ifnull(`c`.`执行会计标准类别`,''),1,' ') AS `执行会计标准类别`,
+    substr(rpad('x'||corp_info_id,32+1,' '),2) AS uuid,
+    substr(rpad('x'||nvl(UNI_SC_ID,'--'),18+1,' '),2) AS 社会信用代码,
+    '2' AS 工商业务类型,
+    substr(rpad('x'||ORGAN_CODE,9+1,' '),2) as 组织机构代码,
+    substr(rpad('x'||substr(nvl(REG_NO,'--'),1,50),50+1,' '),2) AS 注册号,
+    substr(rpad('x'||substr(CORP_NAME,1,100),100+1,' '),2) AS 详细名称,
+    '    ' AS 企业类型,
+    decode(CORP_TYPE,
+      '00010000','1',
+      '00010100','1',
+      '00010200','2',
+      '00010300','1',
+      '00010400','2',
+      '00010500',' ',
+      '00010600','1',
+      '00010700','2',
+      '00010800','1',
+      '00010900','2',
+      '00020000','1',
+      '00030000','1',
+      '00030100','1',
+      '00030200','1',
+      '00030300','1',
+      '00040000',' ',
+      '00040100','1',
+      '00040200','1',
+      '00040300','2',
+      '00040400','2',' ') as 单位类型,
+    substr(rpad('x'||substr(登记注册类型,1,3),3+1,' '),2) AS 登记注册类型,
+    substr(rpad('x'||substr(企业控股情况,1,1),1+1,' '),2) AS 控股情况,
+    substr(rpad('x'||substr(机构类型,1,2),2+1,' '),2) AS 机构类型,
+    substr(rpad('x'||substr(执行会计标准类别,1,1),1+1,' '),2) AS 执行会计标准类别,
     '      ' as 企业登记机关,
-      rpad(ifnull(
-      IF((`a`.`DJJG` = '330000'),
-              IFNULL(`a`.`ZSDJJG`, `a`.`DJJG`),
-              `a`.`DJJG`),''),6,' ') AS `数据处理地代码`,
-      rpad(ifnull(`a`.`CLRQ`,''),20,' ') AS `开业日期`,
-      rpad(ifnull(`a`.`JYQSRQ`,''),20,' ') AS `经营期限自`,
-      rpad(ifnull(`a`.`JYJZRQ`,''),20,' ') AS `经营期限止`,
-    rpad(if( a.jyqsrq is not null and a.jyjzrq is not null,
-      cast(cast(substr(a.jyjzrq,1,4) as decimal(10)) - cast(substr(a.jyqsrq,1,4) as decimal(10))+1 as char varying(4)),
-      ''
-    ),4,' ') as 经营期限,
-      rpad(ifnull(`a`.`ZS`,''),200,' ') AS `住所`,
-      rpad(ifnull(`a`.`YZBM`,''),6,' ') AS `邮政编码`,
-      rpad(ifnull(`d`.`GDDH`,''),60,' ') AS `法人固话`,
-      rpad(ifnull(`a`.`ProLoc`,''),200,' ') AS `生产经营地址`,
-      rpad(ifnull(`a`.`JYFW`,''),3000,' ') AS `经营范围`,
-    rpad('',24,' ') as 注册资本,
-    '   ' as 货币种类,
-    rpad('',24,' ') as 货币金额,
-    rpad(ifnull(a.INFOACTIONTYPE,''),1,' ') as 信息操作类型,
-    rpad('',14,' ') as 数据修改时间,
-      rpad(ifnull(
-      IF((`a`.`DJJG` = '330000'),
-              IFNULL(`a`.`ZSDJJG`, `a`.`DJJG`),
-              `a`.`DJJG`),''),40,' ') AS `行政区划代码`,
-    rpad('',20,' ') as 数据包编码,
-    (CASE
-      WHEN
-        ((`a`.`INFOACTIONTYPE` = '2')
-          OR (`b`.`NBXH` IS NOT NULL))
-      THEN
-        '1'
-      ELSE ' '
-    END) AS `是否注销`,
-    rpad('',32,' ') as 批次号,
-    rpad('',100,' ') as 上级主管部门名称,
-      rpad(ifnull(`a`.`FDDBR`,''),100,' ') AS `法定代表人`,
-      rpad(ifnull(`e`.`INV`,''),50,' ') AS `财务负责人`,
-    rpad('',6,' ') as 投资人数量,
-    rpad('',6,' ') as 下级子公司数量,
-    rpad('',20,' ') as 变更时间,
+    substr(rpad('x'||substr(区划代码,1,6),6+1,' '),2) as 数据处理地代码,
+    substr(rpad('x'||to_char(ESTABLISH_DATE,'yyyymmdd'),20+1,' '),2) as 开业日期,
+    substr(rpad('x'||to_char(trd_start_date,'yyyymmdd'),20+1,' '),2) as 经营期限自,
+    substr(rpad('x'||to_char(trd_end_date,'yyyymmdd'),20+1,' '),2) as 经营期限止,
+    '    ' as 经营期限,
+    substr(rpad('x'||substr(ADDRESS,1,200),200+1,' '),2) as 住所,
+    substr(rpad('x'||substr(ZIP,1,6),6+1,' '),2) as 邮政编码,
+    substr(rpad('x'||substr(TELEPHONE,1,60+1),60,' '),2) as 联系电话,
+    substr(rpad('x'||substr(PRO_LOC,1,200+1),200,' '),2) as 生产经营地址,
+    substr(rpad('x'||substr(BUSINESS_SCOPE,1,3000),3000+1,' '),2) as 经营范围,
+    substr(rpad('x'||REG_CAPITAL,24+1,' '),2) as 注册资本,
+    substr(rpad('x'||substr(CURRENCY,1,3),3+1,' '),2) as 货币种类,
+    rpad(' ',24,' ') as 货币金额,
+    '0' as 信息操作类型,
+    rpad(' ',14,' ') as 数据修改时间,
+    substr(rpad('x'||substr(区划代码,1,40),40+1,' '),2) AS 行政区划代码,
+    rpad(' ',20,' ') as 数据包编码,
+    '0' AS 是否注销,
+    rpad(' ',32,' ') as 批次号,
+    substr(rpad('x'||substr(PARENT_NAME,1,100),100+1,' '),2) as 上级主管部门名称,
+    substr(rpad('x'||substr(PERSON_NAME,1,100),100+1,' '),2) as 法定代表人,
+    substr(rpad('x'||substr(fin_name,1,50),50+1,' '),2) AS 财务负责人,
+    rpad(' ',6,' ') as 投资人数量,
+    rpad(' ',6,' ') as 下级子公司数量,
+    rpad(' ',20,' ') as 变更时间,
     '999' as 状态,
     '0' as 是否重码,
     '0' as 人工处理结果类型,
     '0' as 是否已审核,
     '1' as 是否已推送到名录库,
-    date_format(now(),'%Y%m%d%H%i%S') as 数据上传时间,
-    rpad('',14,' ') as 审核时间
+    to_char( sysdate,'yyyymmddHH24miss') as 数据上传时间,
+    rpad(' ',14,' ') as 审核时间
   FROM
-    ((((`tjj`.`zz_gsyyzz` `a`
-    LEFT JOIN `tjj`.`gx_zxdjxx` `b` ON ((`a`.`NBXH` = `b`.`NBXH`)))
-    LEFT JOIN `test`.`cdetrs` `c` ON ((`a`.`QYLX` = `c`.`代码`)))
-    LEFT JOIN `tjj`.`gs_frxx` `d` ON (((`a`.`NBXH` = `d`.`NBXH`)
-      AND (`d`.`RYXH` = '1'))))
-    LEFT JOIN `tjj`.`gs_cwryxx` `e` ON ((`a`.`NBXH` = `e`.`NBXH`)))
-  where
-    a.uscc is not null
+    corpreg
 
 limit: 100
 filename: export.flat
 outfmt: flat
+fieldsize:
+  - 2
+  - 32
+  - 18
+  - 1
+  - 9
+  - 50
+  - 100
+  - 4
+  - 1
+  - 3
+  - 1
+  - 2
+  - 1
+  - 6
+  - 15
+  - 20
+  - 20
+  - 20
+  - 6
+  - 200
+  - 6
+  - 60
+  - 200
+  - 3000
+  - 24
+  - 3
+  - 24
+  - 1
+  - 14
+  - 40
+  - 20
+  - 1
+  - 32
+  - 100
+  - 100
+  - 50
+  - 6
+  - 6
+  - 20
+  - 3
+  - 1
+  - 1
+  - 1
+  - 1
+  - 14
+  - 14

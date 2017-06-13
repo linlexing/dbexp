@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"os"
 
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
 )
 
 //flat是一种特殊的格式，要求传入的所有记录全部是字符串格式，然后每行拼接所有字段
+//数据里的换行回车被替换成空格
 type outFlat struct {
 	f *os.File
 	w *bufio.Writer
@@ -42,6 +45,15 @@ func (o *outFlat) WriteLine(data []interface{}) error {
 				"col":  i,
 			}).Error(err.Error())
 			return err
+		}
+		str = strings.Replace(
+			strings.Replace(str, "\r", " ", -1),
+			"\n", " ", -1)
+		rstr := []rune(str)
+		if len(rstr) < cfg.FieldSize[i] {
+			str = str + strings.Repeat(" ", cfg.FieldSize[i]-len(rstr))
+		} else if len(rstr) > cfg.FieldSize[i] {
+			str = string(rstr[:cfg.FieldSize[i]])
 		}
 		if _, err := o.w.WriteString(str); err != nil {
 			return err

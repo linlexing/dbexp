@@ -20,12 +20,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var cfg *Config
+
 func init() {
 	os.Setenv("NLS_LANG", "AMERICAN_AMERICA.AL32UTF8")
 
 }
 func main() {
-	cfg := new(Config)
+	cfg = new(Config)
 	bs, err := ioutil.ReadFile("config.yaml")
 	if err == nil {
 		if err = yaml.Unmarshal(bs, cfg); err != nil {
@@ -102,11 +104,14 @@ func main() {
 		log.Panic(err)
 	}
 	defer rows.Close()
-	var rn uint64
 	cols, err := rows.Columns()
 	if err != nil {
 		log.Panic(err)
 	}
+	if len(cfg.FieldSize) > 0 && len(cfg.FieldSize) != len(cols) {
+		log.Panic(fmt.Sprintf("error col num %d not equ fieldsize %d", len(cols), len(cfg.FieldSize)))
+	}
+	var rn uint64
 	if err = out.WriteTitle(cols); err != nil {
 		log.Panic(err)
 	}
