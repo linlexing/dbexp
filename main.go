@@ -1,13 +1,13 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -23,8 +23,8 @@ import (
 var cfg *Config
 
 func init() {
-	os.Setenv("NLS_LANG", "AMERICAN_AMERICA.AL32UTF8")
-
+	// os.Setenv("NLS_LANG", "AMERICAN_AMERICA.AL32UTF8")
+	gob.Register(time.Time{})
 }
 func main() {
 	cfg = new(Config)
@@ -120,7 +120,17 @@ func main() {
 	var preCount uint64
 	for rows.Next() {
 		rn++
-		vars, err := rows.SliceScan()
+		var vars []interface{}
+		if cfg.Outfmt == "gob" {
+			vars = make([]interface{}, len(cols))
+			for i := range vars {
+				vars[i] = new([]byte)
+			}
+			err = rows.Scan(vars...)
+		} else {
+			vars, err = rows.SliceScan()
+		}
+
 		if err != nil {
 			log.WithFields(log.Fields{
 				"no": rn,

@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 //flat是一种特殊的格式，要求传入的所有记录全部是字符串格式，然后每行拼接所有字段

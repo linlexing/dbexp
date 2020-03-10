@@ -1,9 +1,8 @@
 
 driver: oci8
-dburl: tjbm/llx123@localhost:1521/orcl
-table: ""
-query: |
-  select 详细名称,社会信用代码 from 工商 where rownum<10
-limit: 100
-filename: export.flat
-outfmt: flat
+dburl: tjmlk/123456@192.168.1.199:1521/orcl
+table: 法人单位表
+query: 
+limit: -1
+filename: export.gob
+outfmt: gob

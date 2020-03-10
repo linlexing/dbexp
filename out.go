@@ -1,7 +1,9 @@
 package main
 
-import "encoding/gob"
-import "os"
+import (
+	"encoding/gob"
+	"os"
+)
 
 type outEncode interface {
 	Open(string) error
@@ -28,6 +30,7 @@ func (o *outGob) Open(fileName string) (err error) {
 }
 
 func (o *outGob) WriteLine(data []interface{}) error {
+	// fmt.Printf("write data:%#v\n", data)
 	return o.w.Encode(data)
 }
 
